@@ -84,7 +84,7 @@ Algdecomp : (r, verts : Type) -> (f : verts -> Type) -> (shape : Egraph verts Bo
 Algdecomp r verts f shape alg (Val d)= d
 --identity decomposition has zero matrices everywhere
 Algdecomp r verts f shape alg (Addunit)= (\a, b => (\i, j => alg Addunit))
-Algdecomp r verts f shape alg (Mulunit)
+Algdecomp r verts f shape alg (Mulunit)= (\a, b => if a==b then (\i, j => if (i==j) alg Mulunit else alg Addunit) else (\i, j => Addunit))
 
 --Fibgraph : (verts, r : Type) -> (v : Graph r) -> (alg : Algebra (TwoOps r) r) -> (shape : EGraph verts Bool) -> Type
 --Fibgraph verts r v alg shape = (a : Type) -> (tot : EGraph a r) -> EGraphMor a verts r v tot (CBase verts Bool r (Freer r alg) shape)
