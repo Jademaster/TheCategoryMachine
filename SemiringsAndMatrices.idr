@@ -62,13 +62,19 @@ trop (Mul (Just x) (Just y)) = Just (x + y)
 
 freetrop = cata' trop
 
+
 export
 data Fin : Nat -> Type where
   Zero : Fin (S n)
   Suc : (i : Fin n) -> Fin (S n)
 
+export 
+finToNat : Fin n -> Nat
+finToNat Zero = 0
+finToNat (Suc k) = S (finToNat k)
 
-export
+
+public export
 Fintype : Type
 Fintype = DPair Nat Fin
 
@@ -139,9 +145,13 @@ sumVect {n=Z} f z v = z
 sumVect {n=S i} f z v = f (v Zero) (sumVect {n=i} f z (v . Suc))
 
 -- algebra transformer from semirings to matrices
+f : {n : Nat} -> Bool 
+f  = False
+
+
 
 export
-AlgMat : {n : Nat} ->  Algebra (TwoOps a) a -> Algebra (TwoOps (Matrix n n a)) (Matrix n n a)
+AlgMat : {a : Type} -> {n : Nat} ->  Algebra (TwoOps a) a -> Algebra (TwoOps (Matrix n n a)) (Matrix n n a)
 AlgMat alg (Val m) = m
 AlgMat alg (Addunit) = \i, j => (alg Addunit)
 AlgMat alg (Mulunit) = \i, j => if i == j then (alg Addunit) else (alg Mulunit)

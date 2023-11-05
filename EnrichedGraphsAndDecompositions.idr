@@ -18,14 +18,16 @@ bool False True = Fin 1
 bool False False = Fin 1
 bool True True = Fin 1
 
-types : Graph Type
-types a b = a -> b
+Types : Graph Type
+Types a b = a -> b
 
-Fintypes = Graph Fintype
-Fintypes (MkDPair n (Fin n)) (MkDPair m Fin m) = (Fin n -> Fin m)
+Fintypes : Graph Fintype
+Fintypes (MkDPair n n1) (MkDPair m m1) = (Fin n -> Fin m)
 
-rmats : (r : Type) -> Graph Fintype
-rmats r (MkDPair n a) (MkDPair m b) = Matrix n m r
+rmats : (r : Type) -> Graph Nat
+rmats r n m = Matrix n m r
+
+
 
 -- the two change of base functions we need
 
@@ -52,39 +54,61 @@ EGraphMor obj obj' r v g h f=  (s,t : obj) ->  v (g s t) (h (f s) (f t))
 CBase : (verts, obj, obj' : Type) -> (f : obj -> obj') -> EGraph verts obj -> EGraph verts obj' 
 CBase verts obj obj' f g  = (\i, j =>  f (g i j))
 
-Depgraph : (verts, r : Type) -> (f : verts -> Fintype) -> (shape : EGraph verts Bool) -> Type
-Depgraph verts r f shape = EGraphMor verts Fintype Type (types) (CBase verts Bool Type Freetype shape) (rmats r) f
+--Depgraph : (verts, r : Type) -> (f : verts -> Fintype) -> (shape : EGraph verts Bool) -> Type
+--Depgraph verts r f shape = EGraphMor verts Fintype Type (types) (CBase verts Bool Type Freetype shape) (rmats r) f
+{-- 
+Depgraph' : (verts, r : type) -> (f : verts-> Type) -> (shape : EGraph verts Bool) -> Type
+Depgraph' verts r f = (s,t : verts) -> (CBase shape freetype) s t -> (f s -> f t -> r)
+--}
+Depgraph'' : (verts : Nat) -> (r : Type) -> (f : Fin verts-> Nat) -> (shape : Matrix verts verts Bool) -> Type
+Depgraph'' verts r f shape = (s, t : (Fin verts)) -> Matrix (f s) (f t) r
 
 --example
 
 -- example shape
-Sh : EGraph (Fin 2) Bool
+
+Sh : Matrix 2 2 Bool
 Sh Zero Zero = True
 Sh (Suc Zero) (Suc Zero) = True
 Sh Zero (Suc Zero) = True
 Sh (Suc Zero) Zero = True
 Sh _ _ = False
 
+
+
+
  -- object component
-fob : Fin 2 -> Fintype 
-fob Zero = MkDPair 20 (Fin 20)
-fob (Suc Zero) = MkDPair 81 (Fin 81)
+ 
+{--
+Fob : Fin 2 -> Fintype 
+Fob Zero = MkDPair 20 (Zero)
+Fob (Suc Zero) = MkDPair 81 (Suc (Zero))
+--}
+Fob : Fin 2 -> Nat
+Fob Zero = 20
+Fob (Suc Zero) = 81
+
 
 --each edge is mapped to a matrix valued in the tropical semiring
-D : Depgraph (Fin 2) (Maybe Double) Sh
-D = fmor where
-    fmor : (a, b : (Fin 2)) -> (types (Sh a b) (rmats (fob a) (fob b)))
+d : Depgraph'' (2) (Maybe Double) Fob Sh
+d = fmor where
+    fmor : (a, b : (Fin 2)) -> rmats (Maybe Double) (Fob a) (Fob b)
     fmor Zero Zero = (\i, j => if i==j then Just 0 else Just 3.8)
-    fmor Zero (Suc Zero) = (\i, j => if (i==j) then (Just 2.4) else Nothing)
-    fmor (Suc Zero) Zero = (\i, j => if (i==j) then (Just 23) else Nothing)
-    fmor (Suc Zero) (Suc Zero) = (i, j => if i==j then Just 0 else Just 9.9)
+    fmor Zero (Suc Zero) = (\i, j => Nothing)--if (i==j) then (Just 2.4) else Nothing)
+    fmor (Suc Zero) Zero = (\i, j => Nothing)-- if (i==j) then (Just 23) else Nothing)
+    fmor (Suc Zero) (Suc Zero) = (\i, j => if i==j then Just 0 else Just 9.9)
+
+
+Adddepgraph : (verts : Nat) -> (s : Type) -> (fob : Fin verts -> Nat) -> (alg : Algebra (TwoOps Bool) Bool) -> (sh, sh' : Matrix verts verts Bool) -> Depgraph'' (verts) s fob sh -> Depgraph'' (verts) s fob sh' -> Depgraph'' (verts) s fob (AlgMat {a=Bool} {n=verts} alg (Add sh sh'))--alg (Add sh sh'))_ 
+Adddepgraph n s alg sh sh' = (?y)--(d1 d2) = (\i, j => (\a, b => ?d1s )) 
+-- left here with Zanzi Nov. 3rd.
 
 --algebra transformer to dependent graphs
-Algdecomp : (r, verts : Type) -> (f : verts -> Type) -> (shape : Egraph verts Bool) Algebra (TwoOps r) r -> Algebra (TwoOps (Depgraph verts r f shape)) (Depgraph verts r f shape)
-Algdecomp r verts f shape alg (Val d)= d
+--Algdecomp : (r, verts : Type) -> (f : verts -> Type) -> (shape : Egraph verts Bool) Algebra (TwoOps r) r -> Algebra (TwoOps (Depgraph verts r f shape)) (Depgraph verts r f shape)
+--Algdecomp r verts f shape alg (Val d)= d
 --identity decomposition has zero matrices everywhere
-Algdecomp r verts f shape alg (Addunit)= (\a, b => (\i, j => alg Addunit))
-Algdecomp r verts f shape alg (Mulunit)= (\a, b => if a==b then (\i, j => if (i==j) alg Mulunit else alg Addunit) else (\i, j => Addunit))
+--Algdecomp r verts f shape alg (Addunit)= (\a, b => (\i, j => alg Addunit))
+--Algdecomp r verts f shape alg (Mulunit)= (\a, b => if a==b then (\i, j => if (i==j) alg Mulunit else alg Addunit) else (\i, j => Addunit))
 
 --Fibgraph : (verts, r : Type) -> (v : Graph r) -> (alg : Algebra (TwoOps r) r) -> (shape : EGraph verts Bool) -> Type
 --Fibgraph verts r v alg shape = (a : Type) -> (tot : EGraph a r) -> EGraphMor a verts r v tot (CBase verts Bool r (Freer r alg) shape)
