@@ -46,21 +46,21 @@ freenats = cata' nats
 
 --min plus semiring
 
-export
-trop : Algebra (TwoOps (Maybe Double)) (Maybe Double)
-trop (Val x) = x
-trop Addunit = Nothing
-trop Mulunit = Just 0
-trop (Add Nothing y) = y 
-trop (Add x Nothing) = x 
-trop (Add (Just x) (Just y)) = Just (min x y)
-trop (Mul Nothing y) = Nothing 
-trop (Mul x Nothing) = Nothing 
-trop (Mul (Just x) (Just y)) = Just (x + y)
+public export
+Trop : Algebra (TwoOps (Maybe Double)) (Maybe Double)
+Trop (Val x) = x
+Trop Addunit = Nothing
+Trop Mulunit = Just 0
+Trop (Add Nothing y) = y 
+Trop (Add x Nothing) = x 
+Trop (Add (Just x) (Just y)) = Just (min x y)
+Trop (Mul Nothing y) = Nothing 
+Trop (Mul x Nothing) = Nothing 
+Trop (Mul (Just x) (Just y)) = Just (x + y)
 
 -- the free extension
 
-freetrop = cata' trop
+freetrop = cata' Trop
 
 
 export
@@ -102,12 +102,13 @@ Tworig (Add a b) = Either a b
 Tworig (Mul a b) = (a,b)
 
 -- boolean semiring
---bools : Algebra (TwoOps Bool) Bool
---bools Val a = a
---bools (Add a b) = a or b
---bools (Mul a b) = a and b
---bools (Addunit) = False
---bools (Mulunit) = True
+public export
+Bools : Algebra (TwoOps Bool) Bool
+Bools (Val a) = a
+Bools (Add a b) = or [a, b]
+Bools (Mul a b) = and [a, b]
+Bools (Addunit) = False
+Bools (Mulunit) = True
 
 --and its free extension
 
@@ -125,6 +126,10 @@ export
 Matrix : Nat -> Nat -> Type -> Type
 Matrix m n s = Fin m -> Fin n -> s
 
+public export
+Identity : (n : Nat) -> (r: Type)-> (ralg : Algebra (TwoOps r) r) ->  Matrix n n r
+Identity n r ralg i j =  if i==j then (ralg Mulunit) else (ralg Addunit)
+
 A : Matrix 2 2 Nat
 A Zero Zero = 3
 A Zero (Suc Zero) = 2
@@ -135,11 +140,11 @@ A (Suc Zero) (Suc Zero)=3
 compose : (a -> a -> TwoOps a a) -> (TwoOps a a -> a) -> a -> a -> a 
 compose f1 f2 = \a1, a2 => f2 (f1 a1 a2)
 
+export
+Addalg : Algebra (TwoOps a) a -> (a -> a -> a)
+Addalg = compose Add
 
-addalg : Algebra (TwoOps a) a -> (a -> a -> a)
-addalg = compose Add
-
-
+export
 sumVect : {n : Nat} -> (a -> a -> a) -> a -> (Fin n -> a) -> a
 sumVect {n=Z} f z v = z
 sumVect {n=S i} f z v = f (v Zero) (sumVect {n=i} f z (v . Suc))
@@ -156,7 +161,7 @@ AlgMat alg (Val m) = m
 AlgMat alg (Addunit) = \i, j => (alg Addunit)
 AlgMat alg (Mulunit) = \i, j => if i == j then (alg Addunit) else (alg Mulunit)
 AlgMat alg (Add m1 m2) = \i, j => alg (Add (m1 i j) (m2 i j))
-AlgMat alg ((Mul m1 m2)) = \i, j => sumVect {n} (addalg alg) (alg Addunit) (\k => (alg (Mul (m1 i k) (m2 k j))))
+AlgMat alg ((Mul m1 m2)) = \i, j => sumVect {n} (Addalg alg) (alg Addunit) (\k => (alg (Mul (m1 i k) (m2 k j))))
 
 -- example
 Matsemiring = AlgMat nats

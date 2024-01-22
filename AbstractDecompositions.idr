@@ -10,30 +10,8 @@ GraphMor {obj, obj'} f g h = {s, t : obj} -> g s t -> h (f s) (f t)
 -- free category
 data Path : {obj : Type} -> Graph obj -> Graph obj where 
   Id : Path g a a 
-  Comp : {g : Graph obj} -> {b : obj} -> g a b -> Path g b c -> Path g a c
-
---category definition
-
-Category : {obj : Type} -> (g : Graph obj) -> Type
-Category {obj} g = GraphMor Prelude.Basics.id (Path g) g
-
--- example
-
-rmats : (r : Type) -> Graph Nat
-rmats r n m = Matrix n m r
-
-Rmatmult : (r : Type) -> (ralg : Algebra (TwoOps r) r) -> {i, j, k: Nat} -> Matrix i j r -> Matrix j k r -> Matrix i k r
-Rmatmult r ralg {i, j, k} m1 m2 = \a, c => sumVect (Addalg ralg) (ralg Addunit) (\b => (ralg (Mul (m1 a b) (m2 b c))))
-
--- the categorical structure of Rmat
-Rmatcat : (r : Type) -> (ralg : Algebra (TwoOps r) r) -> Category (rmats r) 
-Rmatcat r ralg {s=n, t=n} Id = Identity n r ralg
-Rmatcat r ralg {s, t} (Comp {b} f path) = Rmatmult r ralg {i=s,j=b,k=t} f (Rmatcat r ralg path)
-
--- Universal property of free categories
-Mate : (g : Graph obj) -> (h : Graph obj') -> (hcat : Category h) -> (f : GraphMor fob g h) -> GraphMor fob (Path g) h
-Mate g h hcat f {s, t} Id = hcat {s=fob s,t= fob t} Id
-Mate g h hcat f {s, t}
+  Comp : {g : Graph obj} -> g a b -> Path g b c -> Path g a c
+  
 
 bool : Graph Bool
 bool True False = Fin 0
@@ -46,6 +24,11 @@ Types a b = a -> b
 
 Fintypes : Graph Fintype
 Fintypes (MkDPair n n1) (MkDPair m m1) = (Fin n -> Fin m)
+
+rmats : (r : Type) -> Graph Nat
+rmats r n m = Matrix n m r
+
+
 
 -- the two change of base functions we need
 
@@ -91,6 +74,9 @@ Sh (Suc Zero) (Suc Zero) = True
 Sh Zero (Suc Zero) = True
 Sh (Suc Zero) Zero = True
 Sh _ _ = False
+
+
+
 
  -- object component
  
