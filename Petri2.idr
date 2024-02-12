@@ -28,10 +28,34 @@ term : Freecmc Net A B
 term = Comp Net A A B (Id Net A) (Gen Net A B FZ)
 
 --Colored Petrinets
-
-Alg : Petrinet n-> Petrinet m -> Type
-Alg p q = DPair  (Fin n -> Fin m) (\f => ({x, y : (Fin n -> Nat)} -> p x y -> q (f x) (f y)))
-
-
+--Multifunction : List Type -> List Type -> Type
+--Multifunction i o = (map ( , ) i ) -> (map ( , ) o)
+--Alg : Petrinet n -> (Fin n -> Type) -> Type
+--Alg net color = {s, t : Fin n -> Nat} -> (net s t) -> DPair (DPair (Fin . s) color)
     
     
+Obd : Type -> Type
+Obd s = s -> Type
+
+Arc : {s: Type} -> {t : Type} -> (s -> t) -> Obd s -> Obd t -> Type
+Arc f fam1 fam2 = {x : s} -> fam1 x -> fam2 (f x)
+
+Families : Type
+Families = DPair Type (\t => (t -> Type)) 
+
+Familyfib : Families -> Type
+Familyfib (MkDPair t fam) = t
+
+--Obf : (Type -> Type) -> Type -> Type
+--Obf f y = DPair Type (\x => (f x = y))
+--Arcf : (f : Type -> Type) -> Functor f => (s, t : Type) -> ( s -> t) -> Obf f s -> Obf f t -> Type 
+--Arcf h f s t (MkDPair a Refl) (MkDPair b Refl) = DPair (a -> b) (\k => (map k = h))
+
+Obf : (Type -> Type) -> Type -> Type
+Obf f y = DPair Type (\x => (f x = y))
+
+Arcf : (func : Functor f) => (f : Type -> Type) -> (s, t : Type) -> (s -> t) -> Obf f s -> Obf f t -> Type
+Arcf f s t h (MkDPair a p) (MkDPair b q) = DPair (a -> b) (\k => map @{func} k ~=~ h)
+
+Preimage : (Type -> Type) -> Type -> Type
+Preimage f y = DPair Type (\x => (f x ~=~ y))
