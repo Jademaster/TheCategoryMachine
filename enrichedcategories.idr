@@ -1,5 +1,6 @@
 
 import Data.Fin
+import Data.List
 
 data TwoOps x a = Val x | Addunit | Mulunit | Add a a | Mul a a
 
@@ -12,6 +13,17 @@ nats (Addunit) = 0
 nats (Mulunit) = 1
 nats ((Add x y)) = x + y
 nats ((Mul x y)) = x * y
+
+Trop : Algebra (TwoOps (Maybe Double)) (Maybe Double)
+Trop (Val x) = x
+Trop Addunit = Nothing
+Trop Mulunit = Just 0
+Trop (Add Nothing y) = y 
+Trop (Add x Nothing) = x 
+Trop (Add (Just x) (Just y)) = Just (min x y)
+Trop (Mul Nothing y) = Nothing 
+Trop (Mul x Nothing) = Nothing 
+Trop (Mul (Just x) (Just y)) = Just (x + y)
 
 Graph : Type -> Type
 Graph r = r -> r -> Type
@@ -38,14 +50,14 @@ AlgMat alg (Add m1 m2) = \i, j => alg (Add (m1 i j) (m2 i j))
 AlgMat alg (Mul m1 m2) = \i, j => sumVect {n} (Addalg alg) (alg Addunit) (\k => (alg (Mul (m1 i k) (m2 k j))))
 
 -- example
-A : EGraph 2 Nat
-A FZ FZ = 3
-A FZ (FS FZ) = 2
-A (FS FZ) FZ = 4
-A (FS FZ) (FS FZ)=3
+G : EGraph 2 Nat
+G FZ FZ = 3
+G FZ (FS FZ) = 2
+G (FS FZ) FZ = 4
+G (FS FZ) (FS FZ)=3
 
-B : EGraph 2 Nat
-B= AlgMat nats (Mul A A)
+H : EGraph 2 Nat
+H= AlgMat nats (Mul G G)
 
 --streams 
 Index : Nat -> Stream a -> a 
@@ -63,3 +75,32 @@ EGraphMor obj obj' r v g h f=  (s,t : Fin obj) ->  v (g s t) (h (f s) (f t))
 
 Enrichedcat : (o : Nat) ->(r : Type) -> Nat -> (v : Graph r) -> (alg : Algebra (TwoOps r) r) -> (g : EGraph o r) -> Type
 Enrichedcat o r n v alg g = EGraphMor o o r v (Index n (FreeECat alg g)) g id
+
+--languages
+Languages : Type
+Languages = List (List Char)
+
+Mulbyword : List Char -> Languages -> Languages
+Mulbyword w Nil = Nil
+Mulbyword w (x :: xs) = (w ++ x) :: (Mulbyword w xs) 
+
+LanguageSemiring : Algebra (TwoOps Languages) Languages
+LanguageSemiring (Val l) = l
+LanguageSemiring (Addunit) = Nil
+LanguageSemiring (Mulunit) = [Nil]
+LanguageSemiring (Add l1 l2) = union l1 l2 
+LanguageSemiring (Mul l1 l2) = concat l1 l2 where
+    concat : Languages -> Languages -> Languages 
+    concat Nil y = Nil
+    concat (x :: xs) ys = union (Mulbyword x ys) (concat xs ys)
+
+Machine : EGraph 2 Languages
+Machine FZ FZ = Nil
+Machine (FS FZ) (FS FZ) = Nil
+Machine (FZ) (FS FZ) = ['a'] :: Nil
+Machine (FS FZ) FZ =  ['b'] :: Nil
+
+Alternatingwords : Stream (EGraph 2 Languages)
+Alternatingwords = FreeECat LanguageSemiring Machine
+
+
