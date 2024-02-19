@@ -1,4 +1,6 @@
 
+-- Can Enriched Category Theory Compute? Or how I learned to stop worrying and care about size issues.
+
 import Data.Fin
 import Data.List
 
@@ -26,7 +28,8 @@ Trop (Mul x Nothing) = Nothing
 Trop (Mul (Just x) (Just y)) = Just (x + y)
 
 Graph : Type -> Type
-Graph r = r -> r -> Type
+Graph obj = obj -> obj -> Type
+ 
 
 EGraph : Nat -> Type -> Type
 EGraph n r =  Fin n -> Fin n -> r 
@@ -102,5 +105,84 @@ Machine (FS FZ) FZ =  ['b'] :: Nil
 
 Alternatingwords : Stream (EGraph 2 Languages)
 Alternatingwords = FreeECat LanguageSemiring Machine
+
+--indexed enriched categories
+Rmat : Type -> Graph Nat
+Rmat r = mats where
+    mats : Nat -> Nat -> Type
+    mats m n = (Fin m) -> (Fin n) -> r
+
+--large graph to large graph morphisms
+GraphMor : (obj, obj' : Type) -> Graph obj ->  Graph obj' -> (f : obj -> obj')-> Type 
+GraphMor obj obj' g h f=  (s,t : obj) ->  ((g s t) -> (h (f s) (f t))) 
+
+
+--These are actually large indexed enriched graphs
+--the type of graph morphisms from a small and locally small graph G to the large graph Rmat
+IndexedEnrichedGraph : Type -> (obj : Nat) -> (Fin obj -> Nat) -> (Graph (Fin obj)) -> Type
+IndexedEnrichedGraph r n grouping shape = GraphMor (Fin n) Nat shape (Rmat r) grouping
+
+--example 
+Sh : Graph (Fin 2)
+Sh FZ FZ = Fin 1
+Sh (FS  FZ) (FS  FZ) = Fin 1
+Sh FZ (FS  FZ) = Fin 1
+Sh (FS  FZ) FZ = Fin 1
+Sh _ _ = Void
+
+Fob : Fin 2 -> Nat
+Fob FZ = 20
+Fob (FS  FZ) = 81
+
+ToNat : {n : Nat} -> (Fin n) -> Nat
+ToNat FZ = 0
+ToNat (FS i) = (ToNat i) + 1
+
+D : IndexedEnrichedGraph Languages 2 Fob Sh
+D = fmor where
+    fmor : (a, b : (Fin 2)) -> (Sh a b -> Rmat Languages (Fob a) (Fob b))
+    fmor FZ (FS FZ) = (\x => (\i, j => if (ToNat i)==(ToNat j) then Nil else [['b']]))
+    fmor FZ FZ = (\x => (\i, j => if (ToNat i)== (ToNat j) then [['b']] else [Nil]))
+    fmor (FS  FZ) FZ = (\x => (\i, j => if (ToNat i)== (ToNat j) then Nil else [['a']]))
+    fmor (FS  FZ) (FS  FZ) = (\x => (\i, j => if (ToNat i== ToNat j) then [['a']] else [Nil]))
+
+--How I learned to start caring about size. 
+
+BigEGraph : Type -> Type -> Type
+BigEGraph obj r = obj -> obj -> r
+
+LocallySmallGraph : Type -> Type
+LocallySmallGraph obj = obj -> obj -> Nat
+
+Underlying : {a : Type} -> LocallySmallGraph a -> Graph a 
+Underlying g = (\i, j => (Fin(g i j))) 
+
+SmalltoLargeMor : {obj : Nat} -> {obj' : Type} -> LocallySmallGraph (Fin obj) -> Graph obj' -> (Fin obj -> obj') -> Type
+SmalltoLargeMor g h f =  (s,t : (Fin obj)) ->  (Fin (g s t) -> h (f s) (f t))
+
+SmalltoLargeIEGraph : Type -> (obj : Nat) -> (Fin obj -> Nat) -> (LocallySmallGraph (Fin obj)) -> Type
+SmalltoLargeIEGraph r n grouping shape = SmalltoLargeMor shape (RMat r) grouping where 
+    RMat : Type -> (Graph Nat) 
+    RMat r = (\x, y => (Fin x -> Fin y -> r))
+
+Groth : (r : Type) -> (obj : Nat) -> (grouping : Fin obj -> Nat) -> (g : LocallySmallGraph (Fin obj)) -> (Algebra (TwoOps r) r) -> SmalltoLargeIEGraph r obj grouping g -> BigEGraph (DPair (Fin obj) (Fin . grouping)) r
+Groth r obj grouping g alg decomp = h where
+    h : (DPair (Fin obj) (Fin . grouping)) -> (DPair (Fin obj) (Fin . grouping)) -> r
+    h (MkDPair x a) (MkDPair y b) = sumfunc (alg) (g x y) (\f => decomp x y f a b) where
+        sumfunc :  (Algebra (TwoOps r) r) -> (n : Nat) -> ((Fin n) -> r) -> r
+        sumfunc alg n f = ?res
+
+
+
+
+
+
+
+
+main : IO ()
+main = print ((Index 6 Alternatingwords) FZ (FS FZ))
+
+
+
 
 
